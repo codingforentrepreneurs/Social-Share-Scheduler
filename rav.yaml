@@ -1,0 +1,3 @@
+scripts:
+  notebook:
+    - venv/bin/jupyter notebook

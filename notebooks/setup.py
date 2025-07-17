@@ -15,10 +15,10 @@ def init(verbose=False):
         print(f"Changed working directory to: {DJANGO_PROJECT_ROOT}")
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", DJANGO_SETTINGS_MODULE)
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-    os.environ.setdefault(
-        "DATABASE_URL",
-        "postgres://postgres:postgres@localhost:5432/postgres",
-    )
+    # os.environ.setdefault(
+    #     "DATABASE_URL",
+    #     "postgres://postgres:postgres@localhost:5432/postgres",
+    # )
     import django
 
     django.setup()

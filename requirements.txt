@@ -1,2 +1,4 @@
 Django
 django-allauth[socialaccount]
+jupyter
+rav
