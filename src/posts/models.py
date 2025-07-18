@@ -34,7 +34,7 @@ class Post(models.Model):
             self.verify_can_share_on_linkedin()
         # run the save method (pre & post save)
 
-    def schedule_platforms(self):
+    def get_scheduled_platforms(self):
         platforms = []
         if self.share_on_linkedin:
             platforms.append("linkedin")
@@ -60,16 +60,17 @@ class Post(models.Model):
             )
         # post-save
 
-    def perform_share_on_linkedin(self, save=False):
+    def perform_share_on_linkedin(self, mock=False, save=False):
         self.share_on_linkedin = False
         if self.shared_at_linkedin:
-            return
-        try:
-            linkedin.post_to_linkedin(self.user, self.content)
-        except:
-            raise ValidationError({
-                "content": "Could not share to linkedin."
-            })
+            return self
+        if not mock:
+            try:
+                linkedin.post_to_linkedin(self.user, self.content)
+            except:
+                raise ValidationError({
+                    "content": "Could not share to linkedin."
+                })
         self.shared_at_linkedin = timezone.now()
         if save:
             self.save()
