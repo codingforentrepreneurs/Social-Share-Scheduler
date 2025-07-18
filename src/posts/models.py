@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from helpers import linkedin
 
 User = settings.AUTH_USER_MODEL # "auth.User"
 
@@ -39,4 +40,15 @@ class Post(models.Model):
 
     @property
     def can_share_on_linkedin(self):
+        try:
+            linkedin.get_linkedin_user_details(self.user)
+        except linkedin.UserNotConnectedLinkedIn:
+            raise ValidationError({
+                "user": f"You must connect LinkedIn before sharing to LinkedIn."
+            })
+        except Exception as e:
+            raise ValidationError({
+                "user": f"{e}"
+            })
+            # return False
         return not self.shared_at_linkedin
