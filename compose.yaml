@@ -1,0 +1,6 @@
+services:
+  scheduler_server:
+    image: inngest/inngest
+    ports:
+      - 8288:8288
+    command: inngest dev -u http://host.docker.internal:8000/api/inngest --no-discovery

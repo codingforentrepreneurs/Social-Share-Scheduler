@@ -1,3 +1,9 @@
 scripts:
   notebook:
     - venv/bin/jupyter notebook
+  server:
+    - cd src && ../venv/bin/python manage.py runserver
+  scheduler_server:
+    - docker compose up
+  scheduler_server_down:
+    - docker compose down -v
