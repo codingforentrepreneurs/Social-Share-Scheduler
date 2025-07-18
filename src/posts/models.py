@@ -4,6 +4,9 @@ from django.db import models
 from django.utils import timezone
 from helpers import linkedin
 
+import inngest
+from scheduler.client import inngest_client
+
 User = settings.AUTH_USER_MODEL # "auth.User"
 
 # Create your models here.
@@ -23,9 +26,21 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         # pre-save
+        trigger_send = False
         if self.share_on_linkedin:
-            self = self.perform_share_on_linkedin(save=False)
+            self.share_on_linkedin = False
+            print("object_id", self.id)
+            trigger_send = True
+            # self = self.perform_share_on_linkedin(save=False)
         super().save(*args, **kwargs)
+
+        if trigger_send:
+            inngest_client.send_sync(
+                inngest.Event(
+                    name="posts/post.scheduled",
+                    data={"platform": "linkedin", "object_id": self.id}
+                )
+            )
         # post-save
 
     def perform_share_on_linkedin(self, save=False):
