@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from datetime import timedelta
 from helpers import linkedin
 
 import inngest
@@ -51,11 +52,18 @@ class Post(models.Model):
         super().save(*args, **kwargs)
 
         if do_schedule_post:
+            time_delay = (timezone.now() + timedelta(seconds=10)).timestamp() * 1000
+            if self.share_now:
+                time_delay = (timezone.now() + timedelta(seconds=45)).timestamp() * 1000
+            elif self.share_at:
+                time_delay = (self.share_at +  + timedelta(seconds=45)).timestamp() * 1000
+
             inngest_client.send_sync(
                 inngest.Event(
                     name="posts/post.scheduled",
                     id=f"posts/post.scheduled.{self.id}",
-                    data={"object_id": self.id}
+                    data={"object_id": self.id},
+                    ts=int(time_delay)
                 )
             )
         # post-save
