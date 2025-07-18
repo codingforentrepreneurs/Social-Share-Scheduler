@@ -31,6 +31,12 @@ class Post(models.Model):
         # pre-save
         if self.share_on_linkedin and self.can_share_on_linkedin:
             print("sharing on linkedin")
+            try:
+                linkedin.post_to_linkedin(self.user, self.content)
+            except:
+                raise ValidationError({
+                    "content": "Could not share to linkedin."
+                })
             self.shared_at_linkedin = timezone.now()
         else:
             print('not sharing')
