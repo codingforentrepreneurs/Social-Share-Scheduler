@@ -13,6 +13,9 @@ User = settings.AUTH_USER_MODEL # "auth.User"
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
+    share_now = models.BooleanField(default=None, null=True, blank=True)
+    share_at = models.DateTimeField(auto_now=False, auto_now_add=False, null=True, blank=True)
+
     share_on_linkedin = models.BooleanField(default=False)
     shared_at_linkedin = models.DateTimeField(auto_now=False, auto_now_add=False, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -20,31 +23,43 @@ class Post(models.Model):
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
+        if self.share_now is None and self.share_at is None:
+            raise ValidationError(
+                {
+                    "share_at": "You must select a time to share or share it now",
+                    "share_now": "You must select a time to share or share it now"
+                }
+            )
         if self.share_on_linkedin:
             self.verify_can_share_on_linkedin()
         # run the save method (pre & post save)
 
+    def schedule_platforms(self):
+        platforms = []
+        if self.share_on_linkedin:
+            platforms.append("linkedin")
+        return platforms
+
     def save(self, *args, **kwargs):
         # pre-save
-        trigger_send = False
-        if self.share_on_linkedin:
-            self.share_on_linkedin = False
-            print("object_id", self.id)
-            trigger_send = True
-            # self = self.perform_share_on_linkedin(save=False)
+        do_schedule_post = False
+        if self.share_now is not None or self.share_at is not None:
+            do_schedule_post = True
         super().save(*args, **kwargs)
 
-        if trigger_send:
+        if do_schedule_post:
             inngest_client.send_sync(
                 inngest.Event(
                     name="posts/post.scheduled",
-                    data={"platform": "linkedin", "object_id": self.id}
+                    data={"object_id": self.id}
                 )
             )
         # post-save
 
     def perform_share_on_linkedin(self, save=False):
         self.share_on_linkedin = False
+        if self.shared_at_linkedin:
+            return
         try:
             linkedin.post_to_linkedin(self.user, self.content)
         except:
