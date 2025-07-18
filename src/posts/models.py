@@ -17,35 +17,41 @@ class Post(models.Model):
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
+        if self.share_on_linkedin:
+            self.verify_can_share_on_linkedin()
+        # run the save method (pre & post save)
+
+    def save(self, *args, **kwargs):
+        # pre-save
+        if self.share_on_linkedin:
+            self = self.perform_share_on_linkedin(save=False)
+        super().save(*args, **kwargs)
+        # post-save
+
+    def perform_share_on_linkedin(self, save=False):
+        self.share_on_linkedin = False
+        try:
+            linkedin.post_to_linkedin(self.user, self.content)
+        except:
+            raise ValidationError({
+                "content": "Could not share to linkedin."
+            })
+        self.shared_at_linkedin = timezone.now()
+        if save:
+            self.save()
+        return self
+    
+    def verify_can_share_on_linkedin(self):
+        # run validation errors if attempting to share on linkedin
         if len(self.content) < 5:
             raise ValidationError({
                 "content": "Content must be at least 5 characters long."
             })
-        elif self.share_on_linkedin and not self.can_share_on_linkedin:
+        if self.shared_at_linkedin:
             raise ValidationError({
                 "share_on_linkedin": f"Content is already shared on LinkedIn at {self.shared_at_linkedin}.",
                 "content": "Content is already shared on LinkedIn."
             })
-
-    def save(self, *args, **kwargs):
-        # pre-save
-        if self.share_on_linkedin and self.can_share_on_linkedin:
-            print("sharing on linkedin")
-            try:
-                linkedin.post_to_linkedin(self.user, self.content)
-            except:
-                raise ValidationError({
-                    "content": "Could not share to linkedin."
-                })
-            self.shared_at_linkedin = timezone.now()
-        else:
-            print('not sharing')
-        self.share_on_linkedin = False
-        super().save(*args, **kwargs)
-        # post-save
-
-    @property
-    def can_share_on_linkedin(self):
         try:
             linkedin.get_linkedin_user_details(self.user)
         except linkedin.UserNotConnectedLinkedIn:
@@ -56,5 +62,3 @@ class Post(models.Model):
             raise ValidationError({
                 "user": f"{e}"
             })
-            # return False
-        return not self.shared_at_linkedin
