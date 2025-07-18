@@ -153,6 +153,7 @@ SOCIALACCOUNT_STORE_TOKENS = True
 #                 "client_id": "<insert-id>",
 #                 "secret": "<insert-secret>",
 #                 "settings": {
+#                     "scope": ["openid", "profile", "w_member_social", "email"],
 #                     "server_url": "https://www.linkedin.com/oauth",
 #                 },
 #             }
