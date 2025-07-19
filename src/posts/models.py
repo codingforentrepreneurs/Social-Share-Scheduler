@@ -49,13 +49,14 @@ class Post(models.Model):
             self.share_complete_at is None
         ]):
             do_schedule_post = True
+
+        if self.share_now:
+            self.share_at = timezone.now()
         super().save(*args, **kwargs)
 
         if do_schedule_post:
             time_delay = (timezone.now() + timedelta(seconds=10)).timestamp() * 1000
-            if self.share_now:
-                time_delay = (timezone.now() + timedelta(seconds=45)).timestamp() * 1000
-            elif self.share_at:
+            if self.share_at:
                 time_delay = (self.share_at +  + timedelta(seconds=45)).timestamp() * 1000
 
             inngest_client.send_sync(
@@ -63,7 +64,7 @@ class Post(models.Model):
                     name="posts/post.scheduled",
                     id=f"posts/post.scheduled.{self.id}",
                     data={"object_id": self.id},
-                    ts=int(time_delay)
+                    # ts=int(time_delay)
                 )
             )
         # post-save
