@@ -13,7 +13,7 @@ def workflow_share_on_linkedin_node(instance):
         print("error")
         return False, "Did not share on linkedin"
     # ctx.step.sleep("linkedin-sleeper", timedelta(seconds=7))
-    instance = instance.perform_share_on_linkedin(mock=True, save=False)
+    instance = instance.perform_share_on_linkedin(mock=False, save=True)
     # print(share_platforms, instance.user, str(instance.content)[:10])
     return True, "Shared on linkedin"
 
@@ -43,9 +43,9 @@ def post_scheduler(ctx: inngest.Context) -> str:
     if "linkedin" in share_platforms:
         # handle linkedin
         # ctx.step.sleep("linkedin-sleeper", 7 * 1000)
-        publish_date = timezone.now() + timedelta(seconds=10)
+        publish_date = timezone.now() + timedelta(seconds=5)
         if instance.share_at:
-            publish_date = instance.share_at + timedelta(seconds=10)
+            publish_date = instance.share_at + timedelta(seconds=5)
         # ctx.step.sleep("linkedin-sleeper", timedelta(seconds=7))
         ctx.step.sleep_until("linkedin-sleeper-schedule", publish_date)
         ctx.step.run("linkedin-share-workflow-step", lambda: workflow_share_on_linkedin_node(instance))
