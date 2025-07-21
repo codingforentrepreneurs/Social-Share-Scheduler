@@ -16,10 +16,11 @@ def post_scheduler(ctx: inngest.Context) -> str:
     print(ctx.event.data)
     from posts.models import Post
     object_id = ctx.event.data.get("object_id")
-    try:
-        instance = Post.objects.get(id=object_id)
-    except Post.DoesNotExist:
+    qs = Post.objects.filter(id=object_id)
+    if not qs.exists():
         return "missing"
+    instance = qs.first()
+    qs.update(share_start_at = timezone.now())
     share_platforms = instance.get_scheduled_platforms()
     if "linkedin" in share_platforms:
         # handle linkedin
@@ -38,6 +39,8 @@ def post_scheduler(ctx: inngest.Context) -> str:
         instance = instance.perform_share_on_linkedin(mock=True, save=False)
         print(share_platforms, instance.user, str(instance.content)[:10])
 
-    instance.share_complete_at = timezone.now()
-    instance.save()
+    
+    qs.update(share_complete_at = timezone.now())
+    # instance.share_complete_at = timezone.now()
+    # instance.save()
     return "done"
