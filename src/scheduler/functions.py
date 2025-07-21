@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
 
 import inngest
@@ -18,6 +18,10 @@ def workflow_share_on_linkedin_node(instance):
     return True, "Shared on linkedin"
 
 
+def get_now():
+    return timezone.now().timestamp()
+
+
 # Create an Inngest function
 @inngest_client.create_function(
     fn_id="post_scheduler",
@@ -32,21 +36,24 @@ def post_scheduler(ctx: inngest.Context) -> str:
     if not qs.exists():
         return "missing"
     instance = qs.first()
-    qs.update(share_start_at = timezone.now())
+    start_at = ctx.step.run("workflow-start", get_now)
+    start_at = datetime.fromtimestamp(start_at)
+    qs.update(share_start_at = start_at)
     share_platforms = instance.get_scheduled_platforms()
     if "linkedin" in share_platforms:
         # handle linkedin
         # ctx.step.sleep("linkedin-sleeper", 7 * 1000)
-        publish_date = timezone.now() + timedelta(seconds=3)
+        publish_date = timezone.now() + timedelta(seconds=10)
         if instance.share_at:
-            publish_date = instance.share_at + timedelta(seconds=3)
+            publish_date = instance.share_at + timedelta(seconds=10)
         # ctx.step.sleep("linkedin-sleeper", timedelta(seconds=7))
         ctx.step.sleep_until("linkedin-sleeper-schedule", publish_date)
         ctx.step.run("linkedin-share-workflow-step", lambda: workflow_share_on_linkedin_node(instance))
         
 
-    
-    qs.update(share_complete_at = timezone.now())
+    end_at = ctx.step.run("workflow-end", get_now)
+    end_at = datetime.fromtimestamp(end_at)
+    qs.update(share_complete_at = end_at)
     # instance.share_complete_at = timezone.now()
     # instance.save()
     return "done"
