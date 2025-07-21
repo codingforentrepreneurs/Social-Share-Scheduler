@@ -3,3 +3,4 @@ django-allauth[socialaccount]
 jupyter
 rav
 inngest
+python-dotenv
